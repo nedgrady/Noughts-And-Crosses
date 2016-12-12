@@ -3,26 +3,44 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <title></title>
+
+    <style>
+        input {
+            color:hotpink;
+        }
+
+        #one {
+            width:150px;
+        }
+        #two {
+            height:150px;
+        }
+
+        .nice {
+            background-color:green;
+        }
+
+        .nasty{
+            background-color:red;
+        }
+    </style>
+
     <script>
         //Here is our data Structure in JS
-        var hats = ["kitten", "coal", "more hats??"];
+        var hats = ["kittens", "puppies", "noobs"];
     </script>
 </head>
 <body>
     <!--here we allow the user to see/interact with our data structure through HTML elements-->
     <table>
         <tr>
-            <td><input type="button" value="Mystery hat 1" /></td>
-            <td><input type="button" value="Mystery hat 2" /></td>
-            <td><input type="button" value="Mystery hat 3" /></td>
+            <td><input type="button" value="Mystery hat 1" id="one" class="nice"/></td>
+            <td><input type="button" value="Mystery hat 2" id="two" class="nice"/></td>
+            <td><input type="button" value="Mystery hat 3" id="three" class="nasty"/></td>
         </tr>
         <tr>
             <!--this row is empty-->
         </tr>
     </table>
-
-
-
 </body>
 </html>
