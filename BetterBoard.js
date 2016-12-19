@@ -1,45 +1,47 @@
 ﻿// JavaScript source code
-var pieces = ["X", "O", "■", "▲"];
-var empty = "";
-var target = 3; //number of how many consecutive piece one needs to win
+
+gConfig = {
+    size: 3,
+    empty: "",
+    boundsX: {
+        min: 0,
+        max: 2
+    },
+    boundsY: {
+        min: 0,
+        max: 2
+    },
+    initialMoveCount: 0,
+    target: 3,
+    pieces: ["X", "O", "■", "▲"],
+    replaceablePieces: []
+
+}
+
 
 class Piece {
 
     constructor(config, value) {
-        this._config = config;
-        this._value = empty;
-        this.tryPlace(value);
-    }
-    
-    validMove(value) {    
-        return this._empty() && this._config.includes(value);
+        this.config = config;
+        this.value = config.empty; //default to the first empty piece
+        this.tryPut(value);        
     }
 
-    tryPlace(value){
-        let valid = this.validMove(value);
-        if (valid) {
-            this._place(value);
-        }
-        return valid;        
-    }    
-
-    _place(value){
-        this._value  = value;
+    validMove(value) {
+        return pValidMove(this, value, this.config);
     }
 
-    _empty(){
-        return this._value === empty;
+    tryPut(value) {
+        return pTryPut(this, this.config, value);
+    }
+
+    put(value) {
+        pPut(this, value);
     }
 
     equal(piece) {
-        return piece.value() === this.value();
+        return pEqual(this, piece);
     }
-
-    value() {
-        return this._value;
-    }
-
-
 }
 
 
@@ -47,146 +49,100 @@ class Piece {
 
 class Board {
 
-    constructor(config, size) {
-        var _size, split, _moveCount;
-        this._config = config;
-        this._size = size > 0 ? size : 3; //default to 3        
-        this._initBoard(this._size);
+    constructor(config) {
+        var size, split, grid;
+        this.config = config;
+        this.size = config.size > 0 ? config.size : 3; //default to 3        
+        this.initBoard(this.size);
+        this.moveCount = config.initialMoveCount;
 
     }
 
-    _initBoard(size) {
-        var _board;
-        if (size > 0) {
-
-            this._board = new Array(size);
-
-            for (let i = 0; i < size; i++) {
-                this._board[i] = new Array(size);
-                for (let j = 0; j < size; j++) {
-                    this._board[i][j] = new Piece(this.getConfig(), empty); 
-                }
-            }
-        }
+    initBoard() {
+        this.grid = pInitGrid(this.config);
+        debugger;
     }
 
     getPiece(rowNum, colNum) {
-        if (this._inRange(rowNum) && this._inRange(colNum)) {
-            return this._board[rowNum][colNum];
-        }        
+
+        return pGetPieceFromGrid(this.grid, this.config, rowNum, colNum);
     }
 
     /*
-    Concrete logic of placing a specified value in a specified piece
+    Concrete logic of placing a specified piece on the grid.
     */
-    tryPlace(value, rowNum, colNum) {
-        let targetPiece = this.getPiece(rowNum, colNum);
-        return tryPlace(this, targetPiece, value);
+    tryPlaceOnGrid(piece, rowNum, colNum) {
+        let targetPiece = pGetPieceFromGrid(this.grid, this.config, rowNum, colNum);//this.getPiece(this, rowNum, colNum);
+        return pTryPlaceOnGrid(targetPiece, );
     }
 
     increment() {
-        this._moveCount++;
-    }
-
-    _getRow(rowNum) {
-        if (this._inRange(rowNum)) {
-            return this._board[rowNum];
-        }        
-    }
-
-    _getCol(colNum) {
-        let col = [];
-        if (this._inRange(colNum)) {
-            this._board.forEach(function (row) {
-                col.push(row[colNum]);
-            });
-        }
-        return col;
-    }
-
-    _inRange(index){
-        return index < this._size && index >= 0;
-    }
-
-    _getDiags() {
-        let diag1 = [],
-            diag2 = [];
-        //using a for loop because we need to know which row we're on
-        for (let i = 0; i < this._size; i++) {
-            //push the ith piece in the i'th row (i counting up from 0 -> (size-1))
-            diag1.push(this._getRow(i)[i]);
-            //push the nth piece in the ith row (n counting down from (size - 1) -> 0)
-            let n = this._size - 1 - i;
-            diag2.push(this._getRow(i)[n]);
-        }
-        return [diag1, diag2];
+        pIncrement(this);
     }
 
     /*
     returns whether or not that piece occurs the target number of times
     */
-
-    endStateReached(piece) {
-        return this._checkRows(piece) || this._checkCols(piece) || this._checkDiags(piece);
-    }
-    
-
-
-    _checkRows(piece) {
-
-        for (let i = 0; i < this._size; i++) {
-            let list = this._getRow(i);
-            //if we find enough consecutive pieces
-            if (consecutive(target, piece, list)) {
-                return true;
-            }
-        }
-        return false;
+    winStateReached(piece) {
+        return pWinStateReached(this.grid, this.config, piece);
     }
 
-    _checkCols(piece) {
-
-        for (let i = 0; i < this._size; i++) {
-            let list = this._getCol(i);
-            //if we find enough consecutive pieces
-            if (consecutive(target, piece, list)) {
-                return true;
-            }
-        }
-        return false;
+    checkRows(piece) {
+        return pCheckRows(this.config, this.grid, piece);
     }
 
-    _checkDiags(piece) {
-        let diags = this._getDiags();
-        for (let i = 0; i < diags.length; i++) {
-            let list = diags[i];
-            if (consecutive(target, piece, list)) {
-                return true;
-            }
-        }
-        return false;
+    checkCols(piece) {
+        return pCheckCols(this.grid, this.config, piece)
+    }
+
+    checkDiags(piece) {
+        return pCheckDiags(this.grid, this.config, piece);
     }
 
     nextPiece() {
-        return next(this._config, this._moveCount);
-    }
-
-    getConfig() {
-        //TODO: validate the config?
-        return this._config;
+        return pNext(this.config, this.moveCount);
     }
 }
 
-function next(config, counter) {
-    return new Piece(config, config[counter % config.length]);
+class Grid{
+    constructor(empty, size){
+        var _grid = pInitGrid(empty, size);
+    }
+
+    getRow(rowNum) {
+        return pGetRow(this._grid, this.config, rowNum);
+    }
+
+    getCol(colNum) {
+        return pGetCol(this._grid, this.config, colNum);
+    }
+
+    getDiags() {
+        return pGetDiags(this._grid, this.config);
+    }
+
+    getPiece(rowNum, colNum) {
+        return pGetPieceFromGrid(this._grid, rowNum, colNum);
+    }
+
 }
 
-function consecutive(target, piece, pieces) {
+//these p (pure) functions have no side effects (??)
+
+// ============= BOARD FUNCTION ============
+
+//return the next piece according to the config and number of turns
+function pNext(config, counter) {
+    return new Piece(config, config[counter % config.size]);
+}
+
+//check some set of pieces for target consecutive pieces.
+function pConsecutive(target, piece, pieces) {
     let run = 0;
     for(let p of pieces) {
-        let equal = p.equal(piece);
+        let equal = pEqual(p, piece);
         if (equal) {
-            if(++run >= target){
+            if (++run >= target) {
                 return true
             }
         } else {
@@ -196,17 +152,150 @@ function consecutive(target, piece, pieces) {
     return false;
 }
 
-function tryPlace(board, piece, value) {
-    if (piece.tryPlace(value)) {
-        board.increment();
-        return true;
+//try to put some piece in a grid
+function pTryPlaceOnGrid(piece, grid, rowNum, colNum) {
+    pTryPut()
+}
+
+//initialise some grid with respect to some config
+function pInitGrid(empty, size) {
+    let grid;
+    if (size > 0) {
+        grid = new Array(size);
+        for (let i = 0; i < size;i++) {
+            grid[i] = new Array(size);
+            for (let j = 0; j < size;j++) {
+                grid[i][j] = new Piece(config, empty);
+            }
+        }
+    }
+    return grid; //undefined grid if size < 1
+}
+
+function pGetPieceFromGrid(grid, config, rowNum, colNum) {
+    debugger;
+    if (pInRange(rowNum, config.boundsX) &&
+        pInRange(colNum, config.boundsY)) {
+        return grid[rowNum][colNum];
+    }
+}
+
+//inclusive bounds
+function pInRange(index, bounds) {
+    return index >= bounds.min && index <= bounds.max;
+}
+
+//this has side effects??
+function pIncrement(board) {
+    board.moveCount++;
+}
+
+//get some row from some board
+function pGetRow(grid, config, rowNum) {
+    if (pInRange(config.boundsX)) {
+        return grid[rowNum];
+    }
+}
+
+//get some column from some grid
+function pGetCol(grid, config, colNum) {
+    let col = [];
+    if (pInRange(colNum, config.boundsY)) {
+        grid.forEach(function (row) {
+            col.push(row[colNum]);
+        });
+    }
+    return col;
+}
+
+//get both diagonals from some grid
+function pGetDiags(grid, config) {
+    let size = config.size;
+    let diag1 = new Array(size),
+        diag2 = new Array(size);
+
+    for (let i = 0; i < size; i++) {
+        diag1[i] = pGetPieceFromGrid(grid, config, i, i);
+        diag2[i] = pGetPieceFromGrid(grid, config, size - i - 1);
+    }
+
+    return [diag1, diag2];
+}
+
+function pWinStateReached(grid, config, piece) {
+    return pCheckRows(grid, config, piece) || pCheckCols(grid, config, piece) || pCheckDiags(grid, config, piece);
+}
+
+//cehck all the rows in some grid for a piece
+function pCheckRows(grid, config, piece) {
+    let list
+    for (let i = 0; i < config.size; i++) {
+        list = pGetRow(grid, config, i);
+        //if we find enough consecutive pieces
+        if (pConsecutive(config.target, piece, list)) {
+            return true;
+        }
     }
     return false;
 }
 
+//cehck all the cols in some grid for a piece
+function pCheckCols(grid, config, piece) {
+    let list
+    for (let i = 0; i < config.size; i++) {
+        list = pGetCol(grid, config, i);
+        if (pConsecutive(config.target, piece, list)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+//check all of the diags in some grid.
+function pCheckDiags(grid, config, piece) {
+    let diags = pGetDiags(grid, config);
+    let list;
+    for (let i = 0; i < diags.length; i++) {
+        list = diags[i];
+        if (pConsecutive(config.target, piece, list)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// ============= PIECE FUNCTIONS =============
+
+//check if for some piece we can place the value in it, with respect to the config.
+function pValidMove(currentValue , config, value) {
+    //ensure that the value IS empty, and that the config includes the value
+    return (currentValue === config.empty || currentValue === config.replaceablePieces.includes(currentValue))
+            && config.pieces.includes(value);
+}
+
+//try to put some value in a piece
+function pTryPut(piece, config, value) {
+    let valid = pValidMove(piece.value, config, value);
+    if (valid) {
+        pPut(piece, value);
+    }
+    return valid;
+}
+
+//put a value in a piece
+function pPut(piece, value) {
+    piece.value = value;
+}
+
+//check that 2 pieces are of equal value
+function pEqual(piece1, piece2) {
+    return piece1.value === piece2.value;
+}
 
 
-var b = new Board(pieces,4);
+//============== GRID FUNCTIONS ==============
+
+var b = new Board(gConfig);
 b
-p = new Piece(pieces, "X");
-consecutive(4, p, b._getCol(0));
+p = new Piece(gConfig, "X");
+
